@@ -1,0 +1,6 @@
+# Cloudflare Pages headers
+# Optional: Add custom headers if needed
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff

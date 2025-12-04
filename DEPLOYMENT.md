@@ -50,14 +50,20 @@ const WORKER_URL = 'https://substack-proxy.your-subdomain.workers.dev';
    - Select the repository: `FiveQInnovations/substack-journity-integration-poc`
 
 3. **Configure Build Settings**
-   - **Framework preset**: None (or "Plain HTML")
-   - **Build command**: (leave empty - no build needed)
+   - **Framework preset**: `None` or `Plain HTML`
+   - **Build command**: (leave empty - **IMPORTANT: Do not set a deploy command**)
    - **Build output directory**: `/` (root directory)
    - **Root directory**: `/` (or leave default)
+   - **Environment variables**: (optional) Add any needed vars here
 
 4. **Deploy**
    - Click **Save and Deploy**
    - Your site will be live at: `https://substack-journity-integration-poc.pages.dev`
+
+**⚠️ Important:** If you see errors about `wrangler deploy`, make sure:
+- Build command is **empty** (not `npx wrangler deploy`)
+- Framework preset is set to `None` or `Plain HTML`
+- Pages will auto-detect and serve `index.html` automatically
 
 #### Option B: Wrangler CLI
 
