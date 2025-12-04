@@ -1,10 +1,43 @@
 # Deployment Guide
 
-## Cloudflare Pages (Recommended)
+## Architecture: Pages + Worker
 
-This is a static site (HTML/CSS/JS) that's perfect for Cloudflare Pages.
+This project uses a **two-part deployment**:
 
-### Option 1: Deploy via GitHub Integration (Easiest)
+1. **Cloudflare Pages** - Serves the static HTML form (frontend)
+2. **Cloudflare Worker** - Proxies Substack subscriptions (handles CORS)
+
+## Deployment Steps
+
+### Step 1: Deploy the Worker (Substack Proxy)
+
+The Worker handles CORS and forwards requests to Substack.
+
+```bash
+# Install Wrangler if you haven't already
+npm install -g wrangler
+
+# Login to Cloudflare
+wrangler login
+
+# Deploy the Worker
+cd /Users/anthony/internal/journity/substack-integration-poc
+wrangler deploy --config wrangler-worker.toml
+```
+
+After deployment, note your Worker URL (e.g., `https://substack-proxy.your-subdomain.workers.dev`)
+
+### Step 2: Update Worker URL in HTML
+
+Edit `index.html` and update the `WORKER_URL` constant:
+
+```javascript
+const WORKER_URL = 'https://substack-proxy.your-subdomain.workers.dev';
+```
+
+### Step 3: Deploy Pages (Frontend)
+
+#### Option A: GitHub Integration (Easiest)
 
 1. **Go to Cloudflare Dashboard**
    - Navigate to [Cloudflare Dashboard](https://dash.cloudflare.com/)
@@ -26,100 +59,104 @@ This is a static site (HTML/CSS/JS) that's perfect for Cloudflare Pages.
    - Click **Save and Deploy**
    - Your site will be live at: `https://substack-journity-integration-poc.pages.dev`
 
-5. **Custom Domain (Optional)**
-   - Go to **Custom domains** in your Pages project
-   - Add your domain (e.g., `substack-poc.yourdomain.com`)
-
-### Option 2: Deploy via Wrangler CLI
+#### Option B: Wrangler CLI
 
 ```bash
-# Install Wrangler CLI
-npm install -g wrangler
-
-# Login to Cloudflare
-wrangler login
-
-# Deploy from the project directory
-cd /Users/anthony/internal/journity/substack-integration-poc
 wrangler pages deploy . --project-name=substack-journity-integration-poc
 ```
 
-## Important Considerations
+### Step 4: Custom Domain (Optional)
 
-### CORS Issues with Substack
+For both Pages and Worker:
 
-The form attempts to submit directly to Substack, but this will likely fail due to:
-- **CORS restrictions**: Substack blocks cross-origin requests
-- **CSRF protection**: Substack requires CSRF tokens
+**Pages:**
+- Go to **Custom domains** in your Pages project
+- Add your domain (e.g., `substack-poc.yourdomain.com`)
 
-**Solutions:**
+**Worker:**
+- Add route in `wrangler-worker.toml`:
+  ```toml
+  routes = [
+    { pattern = "substack-api.yourdomain.com/*", zone_name = "yourdomain.com" }
+  ]
+  ```
 
-1. **Use the Proxy Server** (`server.js`):
-   - Deploy the Node.js server separately (e.g., Railway, Render, Fly.io)
-   - Update the form to POST to your proxy server instead
-   - Proxy server handles CORS and forwards to both services
+## Architecture Diagram
 
-2. **Use Cloudflare Workers** (Recommended):
-   - Create a Cloudflare Worker to handle the Substack submission
-   - Worker acts as a proxy, avoiding CORS issues
-   - Can be deployed alongside Pages
-
-### Environment Variables (if needed)
-
-If you need to configure different endpoints per environment:
-
-1. In Cloudflare Pages dashboard:
-   - Go to **Settings** → **Environment variables**
-   - Add variables like:
-     - `FORM_API_URL` = `https://f.journity.com/v1/email-form`
-     - `SUBSTACK_URL` = `https://humanitasinstitute.substack.com/`
-
-2. Update `index.html` to read from environment:
-   ```javascript
-   const FORM_API_URL = import.meta.env.VITE_FORM_API_URL || 'https://f.journity.com/v1/email-form';
-   ```
-
-## Alternative Hosting Options
-
-### GitHub Pages
-```bash
-# Enable GitHub Pages in repo settings
-# Select main branch, / (root) directory
-# Site will be at: https://fiveqinnovations.github.io/substack-journity-integration-poc/
+```
+User Browser
+    ↓
+Cloudflare Pages (Static HTML/CSS/JS)
+    ↓
+Form Submission
+    ├─→ Journity API (direct, no CORS issues)
+    └─→ Cloudflare Worker (proxy)
+            ↓
+        Substack API (no CORS issues from Worker)
 ```
 
-### Netlify
-1. Connect GitHub repo to Netlify
-2. Build command: (empty)
-3. Publish directory: `/`
-4. Deploy!
+## Benefits of This Approach
 
-### Vercel
-```bash
-npm install -g vercel
-vercel
+✅ **No CORS Issues**: Worker acts as proxy, avoiding browser CORS restrictions  
+✅ **Better Error Handling**: Can read and parse Substack responses  
+✅ **Scalable**: Cloudflare Workers handle high traffic automatically  
+✅ **Fast**: Both Pages and Workers run on Cloudflare's edge network  
+✅ **Free Tier**: Both Pages and Workers have generous free tiers  
+
+## Environment Variables
+
+### Worker Environment Variables (if needed)
+
+In `wrangler-worker.toml`:
+```toml
+[vars]
+DEFAULT_SUBSTACK_URL = "https://humanitasinstitute.substack.com/"
 ```
+
+### Pages Environment Variables (if needed)
+
+In Cloudflare Pages dashboard:
+- Go to **Settings** → **Environment variables**
+- Add variables like:
+  - `WORKER_URL` = `https://substack-proxy.your-subdomain.workers.dev`
 
 ## Testing After Deployment
 
-1. Visit your deployed URL
+1. Visit your Pages URL
 2. Verify form fields are pre-filled correctly
 3. Test with a real email address
-4. Check browser console for any CORS errors
-5. Verify Journity submission succeeds
-6. Note Substack submission status (may show as pending)
+4. Check browser console for any errors
+5. Verify both Journity and Substack submissions succeed
+6. Check Worker logs in Cloudflare dashboard
 
 ## Troubleshooting
 
+### Worker Not Responding
+- Check Worker URL is correct in `index.html`
+- Verify Worker is deployed: `wrangler tail` to see logs
+- Check Worker logs in Cloudflare dashboard
+
 ### CORS Errors
-- Substack will block direct browser requests
-- Use proxy server or Cloudflare Worker solution
+- Ensure Worker URL is set correctly
+- Verify Worker returns proper CORS headers
+- Check browser console for specific error messages
 
 ### Form Not Submitting
 - Check browser console for errors
 - Verify Journity API endpoint is accessible
 - Ensure waypoint is active in Journity dashboard
+- Test Worker directly: `curl -X POST https://your-worker.workers.dev -d '{"email":"test@example.com"}'`
 
-### Build Failures
-- This is a static site - no build needed
-- If Cloudflare Pages shows build errors, set build command to empty
+## Alternative: Single Deployment (Pages Only)
+
+If you don't want to use a Worker, you can deploy just Pages:
+
+1. Set `USE_WORKER_PROXY = false` in `index.html`
+2. Deploy only Pages
+3. Accept that Substack will show as "pending" (Journity will still work)
+
+## Cost
+
+- **Cloudflare Pages**: Free (unlimited requests)
+- **Cloudflare Workers**: Free tier includes 100,000 requests/day
+- **Total**: $0/month for typical usage

@@ -378,31 +378,57 @@
         
         async function submitToSubstack({ url, email }) {
             try {
-                // Substack's subscription endpoint appears to be: {publication}/subscribe
-                // However, they use CSRF tokens and other protections
-                // This is a POC attempt - may not work without proper tokens
+                // Use Cloudflare Worker proxy if available, otherwise attempt direct
+                const USE_WORKER_PROXY = true; // Set to false to attempt direct submission
+                const WORKER_URL = 'https://substack-proxy.your-subdomain.workers.dev'; // Update with your Worker URL
                 
-                const subscribeUrl = url.endsWith('/') 
-                    ? url + 'subscribe' 
-                    : url + '/subscribe';
-                
-                // Attempt to subscribe via POST
-                // Note: This may fail due to CSRF protection or other security measures
-                const formData = new FormData();
-                formData.append('email', email);
-                
-                const response = await fetch(subscribeUrl, {
-                    method: 'POST',
-                    body: formData,
-                    mode: 'no-cors' // Substack may block CORS
-                });
-                
-                // With no-cors, we can't read the response
-                // This is a limitation - we'd need a proxy server
-                return {
-                    status: 'pending',
-                    message: 'Subscription attempted (may require manual verification due to CORS/CSRF protection)'
-                };
+                if (USE_WORKER_PROXY) {
+                    // Submit via Cloudflare Worker proxy (handles CORS)
+                    const response = await fetch(WORKER_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            substackUrl: url
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        return {
+                            status: result.status,
+                            message: result.message
+                        };
+                    } else {
+                        const error = await response.json().catch(() => ({ message: response.statusText }));
+                        return {
+                            status: 'error',
+                            message: error.message || `HTTP ${response.status}`
+                        };
+                    }
+                } else {
+                    // Direct submission attempt (will likely fail due to CORS)
+                    const subscribeUrl = url.endsWith('/') 
+                        ? url + 'subscribe' 
+                        : url + '/subscribe';
+                    
+                    const formData = new FormData();
+                    formData.append('email', email);
+                    
+                    const response = await fetch(subscribeUrl, {
+                        method: 'POST',
+                        body: formData,
+                        mode: 'no-cors' // Substack blocks CORS
+                    });
+                    
+                    // With no-cors, we can't read the response
+                    return {
+                        status: 'pending',
+                        message: 'Subscription attempted (may require manual verification due to CORS/CSRF protection)'
+                    };
+                }
                 
             } catch (error) {
                 return {
