@@ -380,7 +380,7 @@
             try {
                 // Use Cloudflare Worker proxy if available, otherwise attempt direct
                 const USE_WORKER_PROXY = true; // Set to false to attempt direct submission
-                const WORKER_URL = 'https://substack-proxy.your-subdomain.workers.dev'; // Update with your Worker URL
+                const WORKER_URL = 'https://substack-journity-integration-poc.1-five-q-innovations.workers.dev/'; // Cloudflare Worker proxy
                 
                 if (USE_WORKER_PROXY) {
                     // Submit via Cloudflare Worker proxy (handles CORS)
