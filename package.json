@@ -1,0 +1,28 @@
+{
+  "name": "substack-journity-integration-poc",
+  "version": "1.0.0",
+  "description": "Proof of concept for integrating Substack subscriptions with Journity form submissions",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "substack",
+    "journity",
+    "email",
+    "subscription",
+    "integration"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "mongodb": "^6.21.0",
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

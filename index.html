@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Substack + Journity Integration POC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .config-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .config-section h2 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            color: #555;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        input[type="text"],
+        input[type="email"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        input[readonly] {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+            color: #666;
+        }
+        
+        input[readonly]:focus {
+            border-color: #e0e0e0;
+        }
+        
+        .form-group small {
+            display: block;
+            color: #888;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .status.show {
+            display: block;
+        }
+        
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        
+        .result-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            font-weight: 600;
+            color: #333;
+            margin-right: 10px;
+        }
+        
+        .result-value {
+            color: #666;
+        }
+        
+        .result-value.success {
+            color: #28a745;
+        }
+        
+        .result-value.error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Substack + Journity Integration</h1>
+        <p class="subtitle">Proof of Concept - Dual Submission Form</p>
+        
+        <div class="config-section">
+            <h2>Configuration</h2>
+            
+            <div class="form-group">
+                <label for="journityUrl">Journity Form API URL</label>
+                <input type="text" id="journityUrl" placeholder="https://api.journity.com/v1/email-form" value="https://f.journity.com/v1/email-form" readonly>
+                <small>Endpoint for Journity form submissions</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="aid">App ID (aid)</label>
+                <input type="text" id="aid" placeholder="your-app-id" value="humanitasinstitute.org" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label for="ctaHashId">CTA Hash ID</label>
+                <input type="text" id="ctaHashId" placeholder="cta-hash-id" value="4b0841cd6bcf21ed5ccfbcff" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label>Substack Publication</label>
+                <div style="padding: 12px; background: #e8f4f8; border: 2px solid #bee5eb; border-radius: 6px; color: #0c5460;">
+                    <strong>Humanitas Forum</strong><br>
+                    <small style="color: #666;">https://humanitasinstitute.substack.com/</small>
+                </div>
+            </div>
+        </div>
+        
+        <form id="subscriptionForm">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="user@example.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="firstName">First Name (Optional)</label>
+                <input type="text" id="firstName" placeholder="John">
+            </div>
+            
+            <div class="form-group">
+                <label for="lastName">Last Name (Optional)</label>
+                <input type="text" id="lastName" placeholder="Doe">
+            </div>
+            
+            <button type="submit" id="submitBtn">Subscribe</button>
+        </form>
+        
+        <div id="status" class="status"></div>
+        
+        <div id="results" class="results" style="display: none;"></div>
+    </div>
+    
+    <script>
+        // Hardcoded Substack URL
+        const SUBSTACK_URL = 'https://humanitasinstitute.substack.com/';
+        
+        // Form submission handler
+        document.getElementById('subscriptionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            
+            // Get form values
+            const email = document.getElementById('email').value;
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const journityUrl = document.getElementById('journityUrl').value;
+            const aid = document.getElementById('aid').value;
+            const ctaHashId = document.getElementById('ctaHashId').value;
+            const substackUrl = SUBSTACK_URL;
+            
+            // Validate required fields
+            if (!journityUrl || !aid || !ctaHashId) {
+                showStatus('error', 'Please fill in all configuration fields');
+                return;
+            }
+            
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            statusDiv.className = 'status';
+            resultsDiv.style.display = 'none';
+            
+            const results = {
+                journity: { status: 'pending', message: '' },
+                substack: { status: 'pending', message: '' }
+            };
+            
+            try {
+                // Submit to Journity
+                const journityResult = await submitToJournity({
+                    url: journityUrl,
+                    aid: aid,
+                    ctaHashId: ctaHashId,
+                    email: email,
+                    firstName: firstName,
+                    lastName: lastName
+                });
+                
+                results.journity = journityResult;
+                
+                // Submit to Substack
+                const substackResult = await submitToSubstack({
+                    url: substackUrl,
+                    email: email
+                });
+                
+                results.substack = substackResult;
+                
+                // Show results
+                showResults(results);
+                
+                // Show overall status
+                if (results.journity.status === 'success' && results.substack.status === 'success') {
+                    showStatus('success', 'Successfully subscribed to both Journity and Substack!');
+                } else if (results.journity.status === 'success') {
+                    showStatus('info', 'Subscribed to Journity. Substack subscription may require manual verification.');
+                } else {
+                    showStatus('error', 'Some subscriptions failed. Check results below.');
+                }
+                
+            } catch (error) {
+                showStatus('error', 'An error occurred: ' + error.message);
+                showResults(results);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Subscribe';
+            }
+        });
+        
+        async function submitToJournity({ url, aid, ctaHashId, email, firstName, lastName }) {
+            try {
+                // Generate required fields (these would normally come from the waypoint)
+                const did = generateId(); // Device ID
+                const abhash = generateId(); // AB test hash
+                
+                const payload = {
+                    aid: aid,
+                    ctaHashId: ctaHashId,
+                    did: did,
+                    abhash: abhash,
+                    data: {
+                        email: email,
+                        first: firstName || '',
+                        last: lastName || ''
+                    }
+                };
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const result = await response.text();
+                    return {
+                        status: 'success',
+                        message: result === 'success' ? 'Successfully stored in Journity' : result
+                    };
+                } else {
+                    const error = await response.json().catch(() => ({ message: response.statusText }));
+                    return {
+                        status: 'error',
+                        message: error.message || `HTTP ${response.status}`
+                    };
+                }
+            } catch (error) {
+                return {
+                    status: 'error',
+                    message: error.message
+                };
+            }
+        }
+        
+        async function submitToSubstack({ url, email }) {
+            try {
+                // Substack's subscription endpoint appears to be: {publication}/subscribe
+                // However, they use CSRF tokens and other protections
+                // This is a POC attempt - may not work without proper tokens
+                
+                const subscribeUrl = url.endsWith('/') 
+                    ? url + 'subscribe' 
+                    : url + '/subscribe';
+                
+                // Attempt to subscribe via POST
+                // Note: This may fail due to CSRF protection or other security measures
+                const formData = new FormData();
+                formData.append('email', email);
+                
+                const response = await fetch(subscribeUrl, {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'no-cors' // Substack may block CORS
+                });
+                
+                // With no-cors, we can't read the response
+                // This is a limitation - we'd need a proxy server
+                return {
+                    status: 'pending',
+                    message: 'Subscription attempted (may require manual verification due to CORS/CSRF protection)'
+                };
+                
+            } catch (error) {
+                return {
+                    status: 'error',
+                    message: error.message
+                };
+            }
+        }
+        
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type} show`;
+            statusDiv.textContent = message;
+        }
+        
+        function showResults(results) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'block';
+            
+            let html = '<h3 style="margin-bottom: 10px; font-size: 14px;">Submission Results:</h3>';
+            
+            html += `<div class="result-item">
+                <span class="result-label">Journity:</span>
+                <span class="result-value ${results.journity.status}">${results.journity.message || results.journity.status}</span>
+            </div>`;
+            
+            html += `<div class="result-item">
+                <span class="result-label">Substack:</span>
+                <span class="result-value ${results.substack.status}">${results.substack.message || results.substack.status}</span>
+            </div>`;
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function generateId() {
+            // Generate a simple ID for testing
+            return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
+    </script>
+</body>
+</html>
