@@ -1,0 +1,4 @@
+# Cloudflare Pages redirects (if needed)
+# This file ensures SPA routing works correctly
+
+/*    /index.html   200
