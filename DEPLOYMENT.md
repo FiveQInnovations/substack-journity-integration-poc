@@ -51,7 +51,8 @@ const WORKER_URL = 'https://substack-proxy.your-subdomain.workers.dev';
 
 3. **Configure Build Settings**
    - **Framework preset**: `None` or `Plain HTML`
-   - **Build command**: (leave empty - **IMPORTANT: Do not set a deploy command**)
+   - **Build command**: (leave empty)
+   - **Deploy command**: `./deploy.sh` (or `bash deploy.sh` if that doesn't work)
    - **Build output directory**: `/` (root directory)
    - **Root directory**: `/` (or leave default)
    - **Environment variables**: (optional) Add any needed vars here
@@ -60,10 +61,7 @@ const WORKER_URL = 'https://substack-proxy.your-subdomain.workers.dev';
    - Click **Save and Deploy**
    - Your site will be live at: `https://substack-journity-integration-poc.pages.dev`
 
-**⚠️ Important:** If you see errors about `wrangler deploy`, make sure:
-- Build command is **empty** (not `npx wrangler deploy`)
-- Framework preset is set to `None` or `Plain HTML`
-- Pages will auto-detect and serve `index.html` automatically
+**Note:** Cloudflare Pages requires a deploy command. The `deploy.sh` script is a minimal no-op script that satisfies this requirement. Pages will automatically serve your static files.
 
 #### Option B: Wrangler CLI
 
